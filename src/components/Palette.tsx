@@ -20,6 +20,7 @@ export default function Palette({ datasets, onAdd, onUpload, onDemo, onClear }: 
   const groups = [...new Set(kinds.map((k) => NODE_DEFS[k].group))];
   return (
     <aside className="panel palette" aria-label="Node palette">
+      <div className="terminal-title">▦ Toolbox // step_library <span>12 MOD</span></div>
       <div className="row" style={{ flexWrap: 'nowrap' }}>
         <button className="btn soft xs grow" onClick={onDemo}>
           <Icon.sparkle size={14} /> Load demo
@@ -28,7 +29,7 @@ export default function Palette({ datasets, onAdd, onUpload, onDemo, onClear }: 
       </div>
       <label className="search">
         <Icon.search size={15} />
-        <input placeholder="Search steps…" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search steps" />
+        <input placeholder="> FILTER_STEPS…" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search steps" />
       </label>
       {groups.map((g) => (
         <div key={g}>
@@ -53,6 +54,7 @@ export default function Palette({ datasets, onAdd, onUpload, onDemo, onClear }: 
                   >
                     <span className="icon-tile"><KindIcon kind={k} size={15} /></span>
                     <span className="t">{d.label}</span>
+                    <span className="tile-detail">{d.blurb}</span>
                   </button>
                 );
               })}

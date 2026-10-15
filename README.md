@@ -21,6 +21,12 @@ Static site, no backend, nothing uploaded. Hosted free on GitHub Pages.
 | **Code generation** | DuckDB SQL and Spark SQL (one CTE chain per output), PySpark DataFrame code, and a dbt project (`sources.yml`, one model per output, `schema.yml` tests, `dbt_utils` when needed). Download everything as a .zip. |
 | **Your own data** | Upload CSV, Parquet or JSON. It's loaded into DuckDB-WASM and never leaves the tab. Export any step as CSV or Parquet. |
 | **Persistence** | Autosaves to the browser; Save/Open pipelines as JSON. |
+| **CRT workstation** | Phosphor display, stepped circuit traces, docked node library and inspector, and a full-width results console. Mobile tabs switch between library, graph and inspector. |
+| **DuckDB terminal** | Execute SQL against the current session, inspect real EXPLAIN plans, and use table shortcuts. Ctrl/Cmd + Enter executes the query. |
+| **Telemetry** | Per-node row counts, measured execution time, quality assertions and latest execution results. Select a node to inspect it in the editor. |
+| **Display preferences** | Green, amber and white phosphor, optional scanlines and a local autosave toggle. Preferences persist in this browser. |
+
+The workstation UI adapts the supplied Cathode Terminal Architecture designs. Hardware-style framing is decorative; telemetry shows actual pipeline measurements rather than simulated CPU, memory or network activity. Press **F5** to execute the pipeline and **Escape** to deselect a node.
 
 ## The demo pipeline
 

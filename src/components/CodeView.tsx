@@ -9,7 +9,7 @@ const theme = EditorView.theme({
   '.cm-content': { fontFamily: 'var(--mono)' },
   '.cm-gutters': { backgroundColor: 'var(--surface-2)', color: 'var(--text-muted)', border: 'none' },
   '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'transparent' },
-});
+}, { dark: true });
 
 /** Read-only, syntax-highlighted code. */
 export default function CodeView({ code, lang }: { code: string; lang: 'sql' | 'python' | 'text' }) {

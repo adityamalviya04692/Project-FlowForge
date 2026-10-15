@@ -120,11 +120,11 @@ function Inner({ pipeline, states, issues, selected, running = false, fitKey, on
           target: e.target,
           sourceHandle: 'out',
           targetHandle: e.targetHandle ?? 'in',
-          type: 'smoothstep',
+          type: 'step',
           animated: running,
           label: rows != null ? `${fmt(rows)} rows` : undefined,
           labelBgPadding: [7, 3] as [number, number],
-          labelBgBorderRadius: 99,
+          labelBgBorderRadius: 0,
           markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 },
           style: { stroke: color },
         };
@@ -179,13 +179,14 @@ function Inner({ pipeline, states, issues, selected, running = false, fitKey, on
   };
 
   useEffect(() => {
-    // Keep steps readable on wide pipelines; the rest is a pan away.
-    const id = requestAnimationFrame(() => rf.fitView({ padding: 0.08, duration: 250, minZoom: 0.6, maxZoom: 1 }));
+    // Start at the inputs of wide pipelines; Fit View still shows the whole graph.
+    const id = requestAnimationFrame(() => rf.fitView({ nodes: pipeline.nodes.slice(0, 5).map((n) => ({ id: n.id })), padding: 0.15, duration: 250, minZoom: 0.5, maxZoom: 1 }));
     return () => cancelAnimationFrame(id);
   }, [fitKey, rf]);
 
   return (
     <div className="canvas" onDragOver={(e) => (e.preventDefault(), (e.dataTransfer.dropEffect = 'move'))} onDrop={onDrop}>
+      <div className="terminal-title canvas-title">▦ Graph_matrix // workspace_01 <span>{pipeline.nodes.length} ACTIVE NODES</span></div>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -201,7 +202,7 @@ function Inner({ pipeline, states, issues, selected, running = false, fitKey, on
       >
         <Background gap={22} size={1.4} color="var(--canvas-dot)" />
         <Controls position="bottom-left" showInteractive={false} />
-        <MiniMap pannable zoomable position="bottom-right" style={{ width: 150, height: 96 }} maskColor="color-mix(in srgb, var(--bg) 70%, transparent)" nodeBorderRadius={6} nodeColor={(n) => getComputedStyle(document.documentElement).getPropertyValue(`--cat-${NODE_DEFS[(n.data as StepData).n.kind].group.toLowerCase()}`).trim()} />
+        <MiniMap pannable zoomable position="bottom-right" style={{ width: 140, height: 80 }} maskColor="color-mix(in srgb, var(--bg) 70%, transparent)" nodeBorderRadius={0} nodeColor={() => '#55cc77'} />
       </ReactFlow>
       {pipeline.nodes.length === 0 && (
         <div className="empty-canvas">

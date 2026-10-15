@@ -52,12 +52,12 @@ export default function BottomPanel({ pipeline, states, issues, selected, previe
   return (
     <section className="bottom" aria-label="Results">
       <div className="tabs" role="tablist">
-        <button role="tab" className={tab === 'data' ? 'active' : ''} onClick={() => setTab('data')}><Icon.table size={15} /> Data</button>
-        <button role="tab" className={tab === 'code' ? 'active' : ''} onClick={() => setTab('code')}><Icon.code size={15} /> Code</button>
-        <button role="tab" className={tab === 'quality' ? 'active' : ''} onClick={() => setTab('quality')}>
+        <button role="tab" aria-selected={tab === 'data'} className={tab === 'data' ? 'active' : ''} onClick={() => setTab('data')}><Icon.table size={15} /> 1: Data preview</button>
+        <button role="tab" aria-selected={tab === 'code'} className={tab === 'code' ? 'active' : ''} onClick={() => setTab('code')}><Icon.code size={15} /> 2: SQL / dbt export</button>
+        <button role="tab" aria-selected={tab === 'quality'} className={tab === 'quality' ? 'active' : ''} onClick={() => setTab('quality')}>
           <Icon.sparkle size={15} /> Quality {failedTotal > 0 && <span className="count bad">{failedTotal.toLocaleString('en-US')}</span>}
         </button>
-        <button role="tab" className={tab === 'problems' ? 'active' : ''} onClick={() => setTab('problems')}>
+        <button role="tab" aria-selected={tab === 'problems'} className={tab === 'problems' ? 'active' : ''} onClick={() => setTab('problems')}>
           <Icon.alert size={15} /> Problems {problems.length > 0 && <span className={`count${problems.some((p) => p.severity === 'error') ? ' bad' : ''}`}>{problems.length}</span>}
         </button>
         <span className="spacer" />

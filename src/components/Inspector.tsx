@@ -368,6 +368,7 @@ export default function Inspector({ pipeline, node, states, issues, datasets, on
     const outputs = pipeline.nodes.filter((n) => n.kind === 'output').length;
     return (
       <aside className="panel inspector" aria-label="Inspector">
+        <div className="terminal-title">▣ Inspector // telemetry.sys</div>
         <div className="insp-anim" key="pipeline">
         <div className="insp-head" style={{ ['--cat' as string]: 'var(--accent)' }}>
           <span className="icon-tile"><Icon.sparkle size={18} /></span>
@@ -409,6 +410,7 @@ export default function Inspector({ pipeline, node, states, issues, datasets, on
   const set = (patch: object) => onUpdate({ ...node, config: { ...node.config, ...patch } } as PNode);
   return (
     <aside className="panel inspector" aria-label="Inspector">
+      <div className="terminal-title">▣ Inspector // node_params <button className="icon-btn inspector-close" aria-label="Close inspector" onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}>×</button></div>
       <div className={`insp-anim cat-${def.group.toLowerCase()}`} key={node.id}>
       <div className="insp-head">
         <span className="icon-tile"><KindIcon kind={node.kind} size={18} /></span>

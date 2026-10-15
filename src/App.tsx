@@ -5,6 +5,7 @@ import Canvas from './components/Canvas';
 import { Icon } from './components/icons';
 import Inspector from './components/Inspector';
 import Palette, { type Dataset } from './components/Palette';
+import { ConfigView, TelemetryView, TerminalView, useDisplaySettings } from './components/WorkstationViews';
 import { exportNode, formatOf, preview, registerDataset, wasmExec } from './engine/duckdb';
 import { materialize, sourceTable, type NodeState } from './engine/run';
 import { makeNode } from './pipeline/catalog';
@@ -42,6 +43,10 @@ function download(name: string, data: string | Uint8Array, type: string) {
 const logicKey = (p: Pipeline) => JSON.stringify([p.nodes.map((n) => [n.id, n.kind, n.config]), p.edges.map((e) => [e.source, e.target, e.targetHandle])]);
 
 export default function App() {
+  const [view, setView] = useState<'matrix' | 'terminal' | 'telemetry' | 'config'>('matrix');
+  const [dock, setDock] = useState('graph');
+  const [display, setDisplay] = useDisplaySettings();
+  const [clock, setClock] = useState(() => new Date());
   const [pipeline, setPipeline] = useState<Pipeline>(loadSaved);
   const [selected, setSelected] = useState<string | null>(null);
   const [states, setStates] = useState<Map<string, NodeState>>(new Map());
@@ -54,6 +59,11 @@ export default function App() {
   const [toastMsg, setToast] = useState<string | null>(null);
   const runSeq = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setClock(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const issues = useMemo(() => validate(pipeline), [pipeline]);
   const toast = useCallback((m: string) => {
@@ -107,13 +117,13 @@ export default function App() {
   useEffect(() => {
     const t = setTimeout(() => {
       try {
-        localStorage.setItem(STORE, JSON.stringify(pipeline));
+        if (display.autosave) localStorage.setItem(STORE, JSON.stringify(pipeline));
       } catch {
         /* storage unavailable */
       }
     }, 500);
     return () => clearTimeout(t);
-  }, [pipeline]);
+  }, [pipeline, display.autosave]);
 
   // Preview the selected step after each run.
   useEffect(() => {
@@ -199,8 +209,19 @@ export default function App() {
   const node = pipeline.nodes.find((n) => n.id === selected) ?? null;
   const ownErrors = [...states.values()].some((s) => s.error && s.own) || issues.some((i) => i.severity === 'error');
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'F5') { e.preventDefault(); if (ready && !running) void run(); }
+      if (e.key === 'Escape') setSelected(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [ready, running, run]);
+
   return (
-    <div className="app">
+    <div className={`app phosphor-${display.phosphor}${display.scanlines ? ' with-scanlines' : ''}`}>
+      <div className="chassis-top"><span className="vent" /><span>FLOWFORGE SYSTEMS // BROWSER WORKSTATION</span><span className="model-badge"><i /> FORGE–80 <small>HIGH-RESOLUTION DATA TERMINAL</small></span><span className="chassis-model">MODEL: FF–8086 · WEB / WASM</span></div>
+      <main className={`crt-screen view-${view}`}>
       <header className="topbar">
         <span className="brand">
           <span className="brand-mark">
@@ -210,10 +231,8 @@ export default function App() {
               <path d="M10 6.5h3.5a2 2 0 0 1 2 2V15" />
             </svg>
           </span>
-          FlowForge
+          <span>FLOWFORGE OS <small>VISUAL DATA WORKSTATION</small></span>
         </span>
-        <span className="divider hide-sm" />
-        <input className="name-input hide-sm" value={pipeline.name} onChange={(e) => setPipeline({ ...pipeline, name: e.target.value })} aria-label="Pipeline name" />
         <span className="grow" style={{ display: 'flex', minWidth: 0 }}>
           <span className={`status-pill ${!ready || running ? 'busy' : ownErrors ? 'err' : 'ok'}`} role="status">
             <span className="dot" />
@@ -230,22 +249,34 @@ export default function App() {
           <Icon.save size={15} /> Save
         </button>
         <button className="btn primary" onClick={run} disabled={!ready || running}>
-          <Icon.play size={13} /> Run
+          <Icon.play size={13} /> {running ? 'Executing' : '[F5: Execute]'}
         </button>
         <a className="btn ghost xs hide-sm" href="https://github.com/adityamalviya04692/flowforge" target="_blank" rel="noreferrer" title="Source on GitHub" aria-label="Source on GitHub" style={{ padding: 6 }}>
           <Icon.github size={17} />
         </a>
         <input ref={fileInput} type="file" hidden accept=".json" onChange={(e) => (e.target.files?.[0] && onImport(e.target.files[0]), (e.target.value = ''))} />
       </header>
-      <div className={`workspace${node ? ' show-inspector' : ''}`}>
+      <nav className="system-nav" aria-label="Workstation views">
+        {([['matrix', '01: Canvas matrix'], ['terminal', '02: DuckDB terminal'], ['telemetry', '03: Telemetry logs'], ['config', '04: Config protocol']] as const).map(([id, label]) => <button key={id} className={view === id ? 'active' : ''} aria-current={view === id ? 'page' : undefined} onClick={() => setView(id)}>[{label}]</button>)}
+        <span className="nav-state">■ {ready ? 'KERNEL ONLINE' : 'BOOTING KERNEL'}</span>
+      </nav>
+      <div className="pipeline-bar"><span>&gt;&gt; {view === 'matrix' ? 'ACTIVE_PIPELINE:' : `${view.toUpperCase()}.SYS //`}</span><input className="name-input" value={pipeline.name} onChange={(e) => setPipeline({ ...pipeline, name: e.target.value })} aria-label="Pipeline name" /><span className="pipeline-meta">{pipeline.nodes.length} NODES · {pipeline.edges.length} CIRCUITS · LOCAL EXECUTION</span><span className={ownErrors ? 'warning-text' : 'topology'}>{ownErrors ? 'CHECK TOPOLOGY' : 'TOPOLOGY VALIDATED'} ■</span></div>
+      <nav className="mobile-docks" aria-label="Editor panels" hidden={view !== 'matrix'}>{['library', 'graph', 'inspector'].map((id) => <button key={id} className={dock === id ? 'active' : ''} onClick={() => setDock(id)}>[{id}]</button>)}</nav>
+      <div hidden={view !== 'matrix'} className={`workspace dock-${dock}${node ? ' show-inspector' : ''}`}>
         <Palette datasets={datasets} onAdd={(k, d) => addNode(k, undefined, d)} onUpload={onUpload} onDemo={() => load(demoPipeline())} onClear={() => load(emptyPipeline())} />
         <div className="center" style={{ position: 'relative' }}>
           <Canvas pipeline={pipeline} states={states} issues={issues} selected={selected} running={running} fitKey={fitKey} onSelect={setSelected} onChange={setPipeline} onAddAt={(k, pos) => addNode(k, pos)} toast={toast} />
-          <BottomPanel pipeline={pipeline} states={states} issues={issues} selected={selected} preview={previewData} onSelect={setSelected} onExport={onExport} onDownloadZip={onDownloadZip} />
           {toastMsg && <div className="toast" role="alert" key={toastMsg}><Icon.sparkle size={14} style={{ color: 'var(--accent)' }} />{toastMsg}</div>}
         </div>
         <Inspector pipeline={pipeline} node={node} states={states} issues={issues} datasets={datasets} onUpdate={updateNode} onDelete={deleteNode} onRename={(name) => setPipeline({ ...pipeline, name })} onLayout={() => load(autoLayout(pipeline))} />
       </div>
+      {view === 'matrix' && <BottomPanel pipeline={pipeline} states={states} issues={issues} selected={selected} preview={previewData} onSelect={setSelected} onExport={onExport} onDownloadZip={onDownloadZip} />}
+      {view === 'terminal' && <TerminalView ready={ready} pipeline={pipeline} states={states} />}
+      {view === 'telemetry' && <TelemetryView pipeline={pipeline} states={states} running={running} runInfo={runInfo} onSelect={(id) => { setSelected(id); setDock('inspector'); setView('matrix'); }} />}
+      {view === 'config' && <ConfigView settings={display} onChange={setDisplay} datasets={datasets} ready={ready} />}
+      <footer className="system-footer"><span>DUCKDB / WASM <b>■ {ready ? 'ONLINE' : 'INITIALIZING'}</b></span><span>DATA STAYS IN YOUR BROWSER</span><span>{clock.toLocaleTimeString('en-GB')} · ESC: DESELECT · F5: EXECUTE</span></footer>
+      </main>
+      <div className="chassis-bottom"><span className="speaker" /><span className="hardware-label">PHONES ○ &nbsp; DEGAUSS ○</span><span className="hardware-dials"><i /> BRIGHT <i /> CONTRAST <i /> H–HOLD</span><span className="power-led" /> <span>POWER</span><span className="power-switch">ON</span></div>
     </div>
   );
 }
