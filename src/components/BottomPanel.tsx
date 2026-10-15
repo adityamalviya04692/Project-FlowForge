@@ -34,7 +34,7 @@ export function generateAll(p: Pipeline, states: Map<string, NodeState>): CodeFi
   ];
 }
 
-export default function BottomPanel({ pipeline, states, issues, selected, preview, onSelect, onExport, onDownloadZip }: { pipeline: Pipeline; states: Map<string, NodeState>; issues: Issue[]; selected: string | null; preview: PreviewData | null; onSelect: (id: string) => void; onExport: (id: string, fmt: 'csv' | 'parquet') => void; onDownloadZip: (files: CodeFile[]) => void }) {
+export default function BottomPanel({ collapsed, onCollapsedChange, pipeline, states, issues, selected, preview, onSelect, onExport, onDownloadZip }: { collapsed: boolean; onCollapsedChange: (collapsed: boolean) => void; pipeline: Pipeline; states: Map<string, NodeState>; issues: Issue[]; selected: string | null; preview: PreviewData | null; onSelect: (id: string) => void; onExport: (id: string, fmt: 'csv' | 'parquet') => void; onDownloadZip: (files: CodeFile[]) => void }) {
   const [tab, setTab] = useState<Tab>('data');
   const [file, setFile] = useState('sql/duckdb.sql');
   const files = useMemo(() => (tab === 'code' ? generateAll(pipeline, states) : []), [tab, pipeline, states]);
@@ -48,33 +48,40 @@ export default function BottomPanel({ pipeline, states, issues, selected, previe
     ...[...states].filter(([id, s]) => s.error && s.own && !issues.some((i) => i.nodeId === id)).map(([id, s]) => ({ nodeId: id, severity: 'error' as const, message: s.error! })),
   ];
   const label = (id: string) => pipeline.nodes.find((n) => n.id === id)?.label ?? 'Pipeline';
+  const showTab = (next: Tab) => {
+    setTab(next);
+    onCollapsedChange(false);
+  };
 
   return (
-    <section className="bottom" aria-label="Results">
+    <section className={`bottom${collapsed ? ' collapsed' : ''}`} aria-label="Results">
+      <div className="drawer-bar">
       <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'data'} className={tab === 'data' ? 'active' : ''} onClick={() => setTab('data')}><Icon.table size={15} /> 1: Data preview</button>
-        <button role="tab" aria-selected={tab === 'code'} className={tab === 'code' ? 'active' : ''} onClick={() => setTab('code')}><Icon.code size={15} /> 2: SQL / dbt export</button>
-        <button role="tab" aria-selected={tab === 'quality'} className={tab === 'quality' ? 'active' : ''} onClick={() => setTab('quality')}>
+        <button role="tab" aria-controls="results-panel" aria-selected={!collapsed && tab === 'data'} className={!collapsed && tab === 'data' ? 'active' : ''} onClick={() => showTab('data')}><Icon.table size={15} /> 1: Data preview</button>
+        <button role="tab" aria-controls="results-panel" aria-selected={!collapsed && tab === 'code'} className={!collapsed && tab === 'code' ? 'active' : ''} onClick={() => showTab('code')}><Icon.code size={15} /> 2: SQL / dbt export</button>
+        <button role="tab" aria-controls="results-panel" aria-selected={!collapsed && tab === 'quality'} className={!collapsed && tab === 'quality' ? 'active' : ''} onClick={() => showTab('quality')}>
           <Icon.sparkle size={15} /> Quality {failedTotal > 0 && <span className="count bad">{failedTotal.toLocaleString('en-US')}</span>}
         </button>
-        <button role="tab" aria-selected={tab === 'problems'} className={tab === 'problems' ? 'active' : ''} onClick={() => setTab('problems')}>
+        <button role="tab" aria-controls="results-panel" aria-selected={!collapsed && tab === 'problems'} className={!collapsed && tab === 'problems' ? 'active' : ''} onClick={() => showTab('problems')}>
           <Icon.alert size={15} /> Problems {problems.length > 0 && <span className={`count${problems.some((p) => p.severity === 'error') ? ' bad' : ''}`}>{problems.length}</span>}
         </button>
         <span className="spacer" />
-        {tab === 'data' && node && st && !st.error && (
+        {!collapsed && tab === 'data' && node && st && !st.error && (
           <span className="row">
             <button className="btn ghost xs" onClick={() => onExport(node.id, 'csv')}><Icon.download size={14} /> CSV</button>
             <button className="btn ghost xs" onClick={() => onExport(node.id, 'parquet')}>Parquet</button>
           </span>
         )}
-        {tab === 'code' && (
+        {!collapsed && tab === 'code' && (
           <span className="row">
             <button className="btn ghost xs" onClick={() => current && navigator.clipboard.writeText(current.content).catch(() => undefined)}><Icon.copy size={14} /> Copy</button>
             <button className="btn primary xs" onClick={() => onDownloadZip(files)}><Icon.download size={14} /> Download project (.zip)</button>
           </span>
         )}
       </div>
-      <div className="tab-body" key={tab}>
+      <button className="btn xs drawer-toggle" aria-expanded={!collapsed} aria-controls="results-panel" onClick={() => onCollapsedChange(!collapsed)}>{collapsed ? '▴ Show results' : '▾ Hide results'}</button>
+      </div>
+      <div className="tab-body" id="results-panel" role="tabpanel" aria-label={`${tab} results`} hidden={collapsed} key={tab}>
         {tab === 'data' &&
           (!node ? (
             <p className="muted">Select a step to preview its output.</p>

@@ -45,6 +45,7 @@ const logicKey = (p: Pipeline) => JSON.stringify([p.nodes.map((n) => [n.id, n.ki
 export default function App() {
   const [view, setView] = useState<'matrix' | 'terminal' | 'telemetry' | 'config'>('matrix');
   const [dock, setDock] = useState('graph');
+  const [resultsCollapsed, setResultsCollapsed] = useState(true);
   const [display, setDisplay] = useDisplaySettings();
   const [clock, setClock] = useState(() => new Date());
   const [pipeline, setPipeline] = useState<Pipeline>(loadSaved);
@@ -221,7 +222,7 @@ export default function App() {
   return (
     <div className={`app phosphor-${display.phosphor}${display.scanlines ? ' with-scanlines' : ''}`}>
       <div className="chassis-top"><span className="vent" /><span>FLOWFORGE SYSTEMS // BROWSER WORKSTATION</span><span className="model-badge"><i /> FORGE–80 <small>HIGH-RESOLUTION DATA TERMINAL</small></span><span className="chassis-model">MODEL: FF–8086 · WEB / WASM</span></div>
-      <main className={`crt-screen view-${view}`}>
+      <main className={`crt-screen view-${view}${resultsCollapsed ? ' results-collapsed' : ''}`}>
       <header className="topbar">
         <span className="brand">
           <span className="brand-mark">
@@ -270,7 +271,7 @@ export default function App() {
         </div>
         <Inspector pipeline={pipeline} node={node} states={states} issues={issues} datasets={datasets} onUpdate={updateNode} onDelete={deleteNode} onRename={(name) => setPipeline({ ...pipeline, name })} onLayout={() => load(autoLayout(pipeline))} />
       </div>
-      {view === 'matrix' && <BottomPanel pipeline={pipeline} states={states} issues={issues} selected={selected} preview={previewData} onSelect={setSelected} onExport={onExport} onDownloadZip={onDownloadZip} />}
+      {view === 'matrix' && <BottomPanel collapsed={resultsCollapsed} onCollapsedChange={setResultsCollapsed} pipeline={pipeline} states={states} issues={issues} selected={selected} preview={previewData} onSelect={setSelected} onExport={onExport} onDownloadZip={onDownloadZip} />}
       {view === 'terminal' && <TerminalView ready={ready} pipeline={pipeline} states={states} />}
       {view === 'telemetry' && <TelemetryView pipeline={pipeline} states={states} running={running} runInfo={runInfo} onSelect={(id) => { setSelected(id); setDock('inspector'); setView('matrix'); }} />}
       {view === 'config' && <ConfigView settings={display} onChange={setDisplay} datasets={datasets} ready={ready} />}
