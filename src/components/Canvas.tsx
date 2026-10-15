@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, type DragEvent } from 'react';
+import { useCallback, useEffect, useMemo, type DragEvent, type ReactNode } from 'react';
 import { Background, Controls, Handle, MarkerType, MiniMap, Position, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge, type EdgeChange, type Node, type NodeChange, type NodeProps } from '@xyflow/react';
 import type { NodeState } from '../engine/run';
 import { NODE_DEFS } from '../pipeline/catalog';
@@ -88,6 +88,7 @@ function StepNode({ data, selected }: NodeProps<Node<StepData>>) {
 const nodeTypes = { step: StepNode };
 
 interface Props {
+  toolbar?: ReactNode;
   pipeline: Pipeline;
   states: Map<string, NodeState>;
   issues: Issue[];
@@ -100,7 +101,7 @@ interface Props {
   toast: (msg: string) => void;
 }
 
-function Inner({ pipeline, states, issues, selected, running = false, fitKey, onSelect, onChange, onAddAt, toast }: Props) {
+function Inner({ pipeline, states, issues, selected, running = false, fitKey, onSelect, onChange, onAddAt, toast, toolbar }: Props) {
   const rf = useReactFlow();
 
   const nodes: Node<StepData>[] = useMemo(
@@ -186,7 +187,7 @@ function Inner({ pipeline, states, issues, selected, running = false, fitKey, on
 
   return (
     <div className="canvas" onDragOver={(e) => (e.preventDefault(), (e.dataTransfer.dropEffect = 'move'))} onDrop={onDrop}>
-      <div className="terminal-title canvas-title">▦ Graph_matrix // workspace_01 <span>{pipeline.nodes.length} ACTIVE NODES</span></div>
+      <div className="terminal-title canvas-title"><span className="canvas-caption">▦ Graph_matrix // workspace_01</span><div className="canvas-actions" role="group" aria-label="Canvas layout">{toolbar}</div></div>
       <ReactFlow
         nodes={nodes}
         edges={edges}

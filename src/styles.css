@@ -417,7 +417,11 @@ button, a, input, select, textarea { touch-action: manipulation; }
 .btn.soft, .btn.ghost { color: var(--text-muted); border-color: var(--border); background: transparent; }
 .btn.danger { color: var(--bad); }
 .btn:disabled { opacity: .4; }
-.workspace { grid-template-columns: 242px minmax(0, 1fr) 280px; padding: 9px; gap: 9px; min-height: 0; }
+.workspace { --library-width: 242px; --inspector-width: 280px; grid-template-columns: var(--library-width) minmax(0, 1fr) var(--inspector-width); padding: 9px; gap: 9px; min-height: 0; }
+.workspace.library-hidden { grid-template-columns: minmax(0, 1fr) var(--inspector-width); }
+.workspace.inspector-hidden { grid-template-columns: var(--library-width) minmax(0, 1fr); }
+.workspace.library-hidden.inspector-hidden { grid-template-columns: minmax(0, 1fr); }
+.workspace.library-hidden > .palette, .workspace.inspector-hidden > .inspector { display: none !important; }
 .center { display: block; min-height: 0; }
 .panel { background: var(--surface); border: 1px solid var(--border); }
 .terminal-title { display: flex; align-items: center; gap: 6px; justify-content: space-between; color: var(--accent); text-transform: uppercase; font-size: 10px; font-weight: 600; letter-spacing: .3px; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface-2); flex-shrink: 0; }
@@ -437,8 +441,11 @@ button, a, input, select, textarea { touch-action: manipulation; }
 .ds { padding: 6px; gap: 5px; background: transparent; }
 .ds .n, .ds .c, .drop-note { font-size: 9px; }
 .datasets .btn { white-space: normal; text-align: left; }
-.canvas { height: 100%; border: 1px solid var(--border); background: var(--bg); padding-top: 31px; }
-.canvas-title { position: absolute; top: 0; left: 0; right: 0; z-index: 5; height: 31px; }
+.canvas { height: 100%; border: 1px solid var(--border); background: var(--bg); padding-top: 60px; }
+.canvas-title { position: absolute; top: 0; left: 0; right: 0; z-index: 5; height: 60px; flex-wrap: wrap; align-content: center; gap: 5px; }
+.canvas-title .canvas-caption { color: var(--accent); font-size: 10px; width: 100%; }
+.canvas-actions { display: flex; align-items: center; gap: 6px; }
+.canvas-actions .btn { padding: 2px 7px; font-size: 9px; min-height: 24px; }
 .canvas .react-flow__controls, .canvas .react-flow__minimap { border-radius: 0; box-shadow: none; }
 .canvas .react-flow__edge-path { stroke-width: 1.5; stroke-dasharray: 5 4; }
 .canvas .react-flow__edge-text { font-size: 9px; font-weight: 400; }
@@ -546,7 +553,7 @@ button, a, input, select, textarea { touch-action: manipulation; }
 .convergence-test span { font-size: 8px; color: var(--text-muted); margin-top: 10px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 1280px) {
-  .workspace { grid-template-columns: 210px minmax(0, 1fr) 240px; }
+  .workspace { --library-width: 210px; --inspector-width: 240px; }
   .inspector { display: flex; }
   .chassis-model, .model-badge small, .pipeline-meta { display: none; }
   .brand { font-size: 12px; }
@@ -557,7 +564,8 @@ button, a, input, select, textarea { touch-action: manipulation; }
 @media (max-width: 1000px) {
   body { padding: 6px; }
   .app { padding: 0 12px; height: calc(100dvh - 12px); }
-  .workspace { grid-template-columns: 190px minmax(0, 1fr); }
+  .workspace { --library-width: 190px; grid-template-columns: var(--library-width) minmax(0, 1fr); }
+  .workspace.library-hidden { grid-template-columns: minmax(0, 1fr); }
   .workspace .inspector { display: none; }
   .workspace.show-inspector .inspector { display: flex; position: absolute; right: 9px; top: 143px; bottom: calc(var(--results-height) + 28px); width: 270px; z-index: 30; border: 1px solid var(--accent); box-shadow: 0 0 20px #000; }
   .topbar .status-pill { max-width: 170px; }
@@ -588,6 +596,7 @@ button, a, input, select, textarea { touch-action: manipulation; }
   .workspace.dock-library .palette, .workspace.dock-inspector .inspector { display: flex; position: static; width: auto; box-shadow: none; border-color: var(--border); }
   .workspace.dock-graph .center { display: block; }
   .canvas-title { font-size: 9px; }
+  .canvas-actions .column-toggle { display: none; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tile-detail { white-space: normal; max-width: none; font-size: 8px; }
   .tabs { gap: 4px; }

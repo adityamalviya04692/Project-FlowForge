@@ -46,6 +46,10 @@ export default function App() {
   const [view, setView] = useState<'matrix' | 'terminal' | 'telemetry' | 'config'>('matrix');
   const [dock, setDock] = useState('graph');
   const [resultsCollapsed, setResultsCollapsed] = useState(true);
+  const [libraryHidden, setLibraryHidden] = useState(false);
+  const [inspectorHidden, setInspectorHidden] = useState(false);
+  const [canvasOnly, setCanvasOnly] = useState(false);
+  const previousResultsCollapsed = useRef(true);
   const [display, setDisplay] = useDisplaySettings();
   const [clock, setClock] = useState(() => new Date());
   const [pipeline, setPipeline] = useState<Pipeline>(loadSaved);
@@ -262,11 +266,24 @@ export default function App() {
         <span className="nav-state">■ {ready ? 'KERNEL ONLINE' : 'BOOTING KERNEL'}</span>
       </nav>
       <div className="pipeline-bar"><span>&gt;&gt; {view === 'matrix' ? 'ACTIVE_PIPELINE:' : `${view.toUpperCase()}.SYS //`}</span><input className="name-input" value={pipeline.name} onChange={(e) => setPipeline({ ...pipeline, name: e.target.value })} aria-label="Pipeline name" /><span className="pipeline-meta">{pipeline.nodes.length} NODES · {pipeline.edges.length} CIRCUITS · LOCAL EXECUTION</span><span className={ownErrors ? 'warning-text' : 'topology'}>{ownErrors ? 'CHECK TOPOLOGY' : 'TOPOLOGY VALIDATED'} ■</span></div>
-      <nav className="mobile-docks" aria-label="Editor panels" hidden={view !== 'matrix'}>{['library', 'graph', 'inspector'].map((id) => <button key={id} className={dock === id ? 'active' : ''} onClick={() => setDock(id)}>[{id}]</button>)}</nav>
-      <div hidden={view !== 'matrix'} className={`workspace dock-${dock}${node ? ' show-inspector' : ''}`}>
+      <nav className="mobile-docks" aria-label="Editor panels" hidden={view !== 'matrix'}>{['library', 'graph', 'inspector'].map((id) => <button key={id} className={dock === id ? 'active' : ''} onClick={() => {
+        setDock(id);
+        if (id !== 'graph') setCanvasOnly(false);
+        if (id === 'library') setLibraryHidden(false);
+        if (id === 'inspector') setInspectorHidden(false);
+      }}>[{id}]</button>)}</nav>
+      <div hidden={view !== 'matrix'} className={`workspace dock-${dock}${node ? ' show-inspector' : ''}${libraryHidden || canvasOnly ? ' library-hidden' : ''}${inspectorHidden || canvasOnly ? ' inspector-hidden' : ''}`}>
         <Palette datasets={datasets} onAdd={(k, d) => addNode(k, undefined, d)} onUpload={onUpload} onDemo={() => load(demoPipeline())} onClear={() => load(emptyPipeline())} />
         <div className="center" style={{ position: 'relative' }}>
-          <Canvas pipeline={pipeline} states={states} issues={issues} selected={selected} running={running} fitKey={fitKey} onSelect={setSelected} onChange={setPipeline} onAddAt={(k, pos) => addNode(k, pos)} toast={toast} />
+          <Canvas pipeline={pipeline} states={states} issues={issues} selected={selected} running={running} fitKey={fitKey} onSelect={setSelected} onChange={setPipeline} onAddAt={(k, pos) => addNode(k, pos)} toast={toast} toolbar={<>
+            <button className="btn xs column-toggle" aria-expanded={!libraryHidden && !canvasOnly} onClick={() => { setLibraryHidden(!(libraryHidden || canvasOnly)); setCanvasOnly(false); }}>{libraryHidden || canvasOnly ? 'Show toolbox' : 'Hide toolbox'}</button>
+            <button className="btn xs column-toggle" aria-expanded={!inspectorHidden && !canvasOnly} onClick={() => { setInspectorHidden(!(inspectorHidden || canvasOnly)); setCanvasOnly(false); }}>{inspectorHidden || canvasOnly ? 'Show inspector' : 'Hide inspector'}</button>
+            <button className="btn xs" aria-pressed={canvasOnly} onClick={() => {
+              if (!canvasOnly) { previousResultsCollapsed.current = resultsCollapsed; setResultsCollapsed(true); setDock('graph'); }
+              else setResultsCollapsed(previousResultsCollapsed.current);
+              setCanvasOnly(!canvasOnly);
+            }}>{canvasOnly ? 'Restore panels' : 'Canvas only'}</button>
+          </>} />
           {toastMsg && <div className="toast" role="alert" key={toastMsg}><Icon.sparkle size={14} style={{ color: 'var(--accent)' }} />{toastMsg}</div>}
         </div>
         <Inspector pipeline={pipeline} node={node} states={states} issues={issues} datasets={datasets} onUpdate={updateNode} onDelete={deleteNode} onRename={(name) => setPipeline({ ...pipeline, name })} onLayout={() => load(autoLayout(pipeline))} />
