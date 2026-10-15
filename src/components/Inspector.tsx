@@ -1,3 +1,4 @@
+import { Icon, KindIcon } from './icons';
 import type { ReactNode } from 'react';
 import type { NodeState } from '../engine/run';
 import { NODE_DEFS } from '../pipeline/catalog';
@@ -118,8 +119,8 @@ function ConfigForm({ n, inCols, datasets, set }: { n: PNode; inCols: string[][]
       return (
         <>
           <div className="row">
-            <button className="btn quiet xs" onClick={() => set({ columns: a.map((name) => chosen.get(name) ?? { name, as: '', cast: '' }) })}>All</button>
-            <button className="btn quiet xs" onClick={() => set({ columns: [] })}>None</button>
+            <button className="btn ghost xs" onClick={() => set({ columns: a.map((name) => chosen.get(name) ?? { name, as: '', cast: '' }) })}>All</button>
+            <button className="btn ghost xs" onClick={() => set({ columns: [] })}>None</button>
           </div>
           <div className="list">
             {a.map((name) => {
@@ -367,26 +368,35 @@ export default function Inspector({ pipeline, node, states, issues, datasets, on
     const outputs = pipeline.nodes.filter((n) => n.kind === 'output').length;
     return (
       <aside className="panel inspector" aria-label="Inspector">
+        <div className="insp-anim" key="pipeline">
+        <div className="insp-head" style={{ ['--cat' as string]: 'var(--accent)' }}>
+          <span className="icon-tile"><Icon.sparkle size={18} /></span>
+          <div className="grow">
+            <div className="k">Pipeline</div>
+            <div className="b">Overview and quick start</div>
+          </div>
+        </div>
         <div className="field">
           <label>Pipeline name</label>
           <input className="in" value={pipeline.name} onChange={(e) => onRename(e.target.value)} />
         </div>
-        <dl className="kv">
-          <dt>Steps</dt><dd>{pipeline.nodes.length}</dd>
-          <dt>Connections</dt><dd>{pipeline.edges.length}</dd>
-          <dt>Outputs</dt><dd>{outputs}</dd>
-          <dt>Problems</dt><dd style={{ color: errors ? 'var(--bad)' : 'var(--good)' }}>{errors || 'none'}</dd>
-        </dl>
-        <button className="btn quiet xs" style={{ alignSelf: 'flex-start' }} onClick={onLayout} disabled={!pipeline.nodes.length}>Tidy layout</button>
+        <div className="stats">
+          <div className="stat"><div className="v">{pipeline.nodes.length}</div><div className="l">Steps</div></div>
+          <div className="stat"><div className="v">{pipeline.edges.length}</div><div className="l">Connections</div></div>
+          <div className="stat"><div className="v">{outputs}</div><div className="l">Outputs</div></div>
+          <div className="stat"><div className="v" style={{ color: errors ? 'var(--bad)' : 'var(--good)' }}>{errors || '✓'}</div><div className="l">Problems</div></div>
+        </div>
+        <button className="btn soft xs" style={{ alignSelf: 'flex-start' }} onClick={onLayout} disabled={!pipeline.nodes.length}><Icon.tidy size={14} /> Tidy layout</button>
         <div>
           <div className="section-title">How to use</div>
-          <ul className="small muted" style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <li>Drag steps from the left onto the canvas, or click them.</li>
-            <li>Connect the right dot of one step to the left dot of the next. Joins take a left (L) and a right (R) input.</li>
-            <li>Click a step to configure it. Every change re-runs on DuckDB in your browser.</li>
-            <li>Select a step and press Delete to remove it.</li>
-            <li>The Code tab turns the graph into SQL, PySpark and a dbt project.</li>
-          </ul>
+          <ol className="tips">
+            <li><span className="n">1</span><span><b>Drag steps</b> from the left onto the canvas, or click them.</span></li>
+            <li><span className="n">2</span><span><b>Connect</b> the right dot of one step to the left dot of the next. Joins take a left (L) and a right (R) input.</span></li>
+            <li><span className="n">3</span><span><b>Click a step</b> to configure it. Every change re-runs on DuckDB in your browser.</span></li>
+            <li><span className="n">4</span><span>Select a step and press <b>Delete</b> to remove it.</span></li>
+            <li><span className="n">5</span><span>The <b>Code</b> tab turns the graph into SQL, PySpark and a dbt project.</span></li>
+          </ol>
+        </div>
         </div>
       </aside>
     );
@@ -399,13 +409,14 @@ export default function Inspector({ pipeline, node, states, issues, datasets, on
   const set = (patch: object) => onUpdate({ ...node, config: { ...node.config, ...patch } } as PNode);
   return (
     <aside className="panel inspector" aria-label="Inspector">
-      <div className="row" style={{ flexWrap: 'nowrap' }}>
-        <span className={`glyph g-${def.group}`} style={{ width: 26, height: 26, borderRadius: 7, display: 'grid', placeItems: 'center', color: '#fff' }}>{def.glyph}</span>
+      <div className={`insp-anim cat-${def.group.toLowerCase()}`} key={node.id}>
+      <div className="insp-head">
+        <span className="icon-tile"><KindIcon kind={node.kind} size={18} /></span>
         <div className="grow">
-          <div className="section-title" style={{ margin: 0 }}>{def.label}</div>
-          <div className="small muted">{def.blurb}</div>
+          <div className="k">{def.label}</div>
+          <div className="b">{def.blurb}</div>
         </div>
-        <button className="btn danger xs" onClick={() => onDelete(node.id)}>Delete</button>
+        <button className="btn danger xs" onClick={() => onDelete(node.id)} title="Delete step"><Icon.trash size={14} /></button>
       </div>
       <div className="field">
         <label>Step name</label>
@@ -442,11 +453,12 @@ export default function Inspector({ pipeline, node, states, issues, datasets, on
           <div className="section-title">Output schema</div>
           <div className="chips">
             {st.columns.map((c) => (
-              <span key={c.name} className="chip" title={c.type}>{c.name}<span className="muted"> {c.type.toLowerCase()}</span></span>
+              <span key={c.name} className="chip static" title={c.type}>{c.name}<span className="muted"> {c.type.toLowerCase()}</span></span>
             ))}
           </div>
         </div>
       ) : null}
+      </div>
     </aside>
   );
 }

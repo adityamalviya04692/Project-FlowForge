@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { strToU8, zipSync } from 'fflate';
 import BottomPanel, { type CodeFile, type PreviewData } from './components/BottomPanel';
 import Canvas from './components/Canvas';
+import { Icon } from './components/icons';
 import Inspector from './components/Inspector';
 import Palette, { type Dataset } from './components/Palette';
 import { exportNode, formatOf, preview, registerDataset, wasmExec } from './engine/duckdb';
@@ -202,31 +203,46 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <span className="brand">
-          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
-            <rect width="32" height="32" rx="8" fill="var(--accent)" />
-            <rect x="6" y="8" width="8" height="6" rx="2" fill="var(--on-accent)" />
-            <rect x="18" y="18" width="8" height="6" rx="2" fill="var(--on-accent)" />
-            <path d="M14 11h3v10h1" stroke="var(--on-accent)" strokeWidth="2" fill="none" />
-          </svg>
+          <span className="brand-mark">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="7" height="5" rx="1.6" />
+              <rect x="14" y="15" width="7" height="5" rx="1.6" />
+              <path d="M10 6.5h3.5a2 2 0 0 1 2 2V15" />
+            </svg>
+          </span>
           FlowForge
         </span>
+        <span className="divider hide-sm" />
         <input className="name-input hide-sm" value={pipeline.name} onChange={(e) => setPipeline({ ...pipeline, name: e.target.value })} aria-label="Pipeline name" />
-        <span className={`run-status grow${ownErrors ? ' err' : ''}`} role="status">
-          {!ready ? runInfo : running ? 'Running…' : runInfo}
+        <span className="grow" style={{ display: 'flex', minWidth: 0 }}>
+          <span className={`status-pill ${!ready || running ? 'busy' : ownErrors ? 'err' : 'ok'}`} role="status">
+            <span className="dot" />
+            {!ready ? runInfo : running ? 'Running pipeline…' : runInfo}
+          </span>
         </span>
-        <button className="btn quiet xs hide-sm" onClick={() => load(autoLayout(pipeline))} disabled={!pipeline.nodes.length}>Tidy</button>
-        <button className="btn quiet xs hide-sm" onClick={() => fileInput.current?.click()}>Open</button>
-        <button className="btn quiet xs hide-sm" onClick={() => download(`${slug(pipeline.name)}.flowforge.json`, JSON.stringify(pipeline, null, 2), 'application/json')}>Save</button>
-        <button className="btn xs" onClick={run} disabled={!ready || running}>▶ Run</button>
-        <a className="small hide-sm" href="https://github.com/adityamalviya04692/flowforge" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>GitHub</a>
+        <button className="btn ghost xs hide-sm" onClick={() => load(autoLayout(pipeline))} disabled={!pipeline.nodes.length} title="Auto-arrange steps">
+          <Icon.tidy size={15} /> Tidy
+        </button>
+        <button className="btn ghost xs hide-sm" onClick={() => fileInput.current?.click()} title="Open a saved pipeline (.json)">
+          <Icon.open size={15} /> Open
+        </button>
+        <button className="btn ghost xs hide-sm" onClick={() => download(`${slug(pipeline.name)}.flowforge.json`, JSON.stringify(pipeline, null, 2), 'application/json')} title="Save the pipeline as JSON">
+          <Icon.save size={15} /> Save
+        </button>
+        <button className="btn primary" onClick={run} disabled={!ready || running}>
+          <Icon.play size={13} /> Run
+        </button>
+        <a className="btn ghost xs hide-sm" href="https://github.com/adityamalviya04692/flowforge" target="_blank" rel="noreferrer" title="Source on GitHub" aria-label="Source on GitHub" style={{ padding: 6 }}>
+          <Icon.github size={17} />
+        </a>
         <input ref={fileInput} type="file" hidden accept=".json" onChange={(e) => (e.target.files?.[0] && onImport(e.target.files[0]), (e.target.value = ''))} />
       </header>
       <div className={`workspace${node ? ' show-inspector' : ''}`}>
         <Palette datasets={datasets} onAdd={(k, d) => addNode(k, undefined, d)} onUpload={onUpload} onDemo={() => load(demoPipeline())} onClear={() => load(emptyPipeline())} />
         <div className="center" style={{ position: 'relative' }}>
-          <Canvas pipeline={pipeline} states={states} issues={issues} selected={selected} fitKey={fitKey} onSelect={setSelected} onChange={setPipeline} onAddAt={(k, pos) => addNode(k, pos)} toast={toast} />
+          <Canvas pipeline={pipeline} states={states} issues={issues} selected={selected} running={running} fitKey={fitKey} onSelect={setSelected} onChange={setPipeline} onAddAt={(k, pos) => addNode(k, pos)} toast={toast} />
           <BottomPanel pipeline={pipeline} states={states} issues={issues} selected={selected} preview={previewData} onSelect={setSelected} onExport={onExport} onDownloadZip={onDownloadZip} />
-          {toastMsg && <div className="toast" role="alert">{toastMsg}</div>}
+          {toastMsg && <div className="toast" role="alert" key={toastMsg}><Icon.sparkle size={14} style={{ color: 'var(--accent)' }} />{toastMsg}</div>}
         </div>
         <Inspector pipeline={pipeline} node={node} states={states} issues={issues} datasets={datasets} onUpdate={updateNode} onDelete={deleteNode} onRename={(name) => setPipeline({ ...pipeline, name })} onLayout={() => load(autoLayout(pipeline))} />
       </div>

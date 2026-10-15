@@ -5,8 +5,9 @@ import { NODE_DEFS } from '../pipeline/catalog';
 import { connect, type Issue } from '../pipeline/graph';
 import type { NodeKind, Pipeline, PNode } from '../pipeline/types';
 import { DRAG_TYPE } from './Palette';
+import { KindIcon } from './icons';
 
-type StepData = { n: PNode; st?: NodeState; issue?: string };
+type StepData = { n: PNode; st?: NodeState; issue?: string; running?: boolean };
 
 const fmt = (n: number) => n.toLocaleString('en-US');
 
@@ -39,14 +40,16 @@ export function summary(n: PNode): string {
   }
 }
 
+export const catClass = (kind: NodeKind) => `cat-${NODE_DEFS[kind].group.toLowerCase()}`;
+
 function StepNode({ data, selected }: NodeProps<Node<StepData>>) {
-  const { n, st, issue } = data;
+  const { n, st, issue, running } = data;
   const def = NODE_DEFS[n.kind];
   const failed = st?.quality?.checks.reduce((s, c) => s + c.failed, 0) ?? 0;
   const blocked = !!st?.error && !st.own;
   const err = issue ?? (st?.error && st.own ? st.error : undefined);
   return (
-    <div className={`step ${def.group}${selected ? ' selected' : ''}${err ? ' err' : ''}${blocked ? ' blocked' : ''}`}>
+    <div className={`step ${catClass(n.kind)}${selected ? ' selected' : ''}${err ? ' err' : ''}${blocked ? ' blocked' : ''}${running ? ' running' : ''}`}>
       {def.inputs === 2 ? (
         <>
           <Handle type="target" position={Position.Left} id="left" className="lr" style={{ top: '34%' }} />
@@ -57,14 +60,25 @@ function StepNode({ data, selected }: NodeProps<Node<StepData>>) {
       ) : def.inputs !== 0 ? (
         <Handle type="target" position={Position.Left} id="in" />
       ) : null}
-      <div className="step-head">
-        <span className="glyph">{def.glyph}</span>
-        <span className="name" title={n.label}>{n.label}</span>
+      <div className="step-top">
+        <span className="icon-tile"><KindIcon kind={n.kind} size={16} /></span>
+        <div className="step-titles">
+          <div className="step-kind">{def.label}</div>
+          <div className="step-name" title={n.label}>{n.label}</div>
+        </div>
       </div>
       <div className="step-sub" title={summary(n)}>{summary(n)}</div>
       <div className="step-foot">
-        {err ? <span className="bad" title={err}>⚠ {err}</span> : blocked ? <span className="muted">blocked upstream</span> : st?.rows != null ? <span className="ok">{fmt(st.rows)} rows</span> : <span className="muted">…</span>}
-        {failed > 0 ? <span className="warn">{fmt(failed)} failed</span> : st?.columns.length ? <span className="muted">{st.columns.length} cols</span> : null}
+        {err ? (
+          <span className="pill bad" title={err}>● {err}</span>
+        ) : blocked ? (
+          <span className="pill idle">blocked upstream</span>
+        ) : st?.rows != null ? (
+          <span className="pill ok"><span className="dot" />{fmt(st.rows)} rows</span>
+        ) : (
+          <span className="pill idle">waiting…</span>
+        )}
+        {failed > 0 ? <span className="pill warn">{fmt(failed)} failed</span> : st?.columns.length ? <span className="step-cols">{st.columns.length} cols</span> : null}
       </div>
       {n.kind !== 'output' && <Handle type="source" position={Position.Right} id="out" />}
     </div>
@@ -78,6 +92,7 @@ interface Props {
   states: Map<string, NodeState>;
   issues: Issue[];
   selected: string | null;
+  running?: boolean;
   fitKey: number;
   onSelect: (id: string | null) => void;
   onChange: (p: Pipeline) => void;
@@ -85,21 +100,36 @@ interface Props {
   toast: (msg: string) => void;
 }
 
-function Inner({ pipeline, states, issues, selected, fitKey, onSelect, onChange, onAddAt, toast }: Props) {
+function Inner({ pipeline, states, issues, selected, running = false, fitKey, onSelect, onChange, onAddAt, toast }: Props) {
   const rf = useReactFlow();
 
   const nodes: Node<StepData>[] = useMemo(
-    () => pipeline.nodes.map((n) => ({ id: n.id, type: 'step', position: n.position, initialWidth: 210, initialHeight: 76, selected: n.id === selected, data: { n, st: states.get(n.id), issue: issues.find((i) => i.nodeId === n.id && i.severity === 'error')?.message } })),
-    [pipeline.nodes, states, issues, selected],
+    () => pipeline.nodes.map((n) => ({ id: n.id, type: 'step', position: n.position, initialWidth: 224, initialHeight: 96, selected: n.id === selected, data: { n, st: states.get(n.id), running, issue: issues.find((i) => i.nodeId === n.id && i.severity === 'error')?.message } })),
+    [pipeline.nodes, states, issues, selected, running],
   );
 
   const edges: Edge[] = useMemo(
     () =>
       pipeline.edges.map((e) => {
         const rows = states.get(e.source)?.rows;
-        return { id: e.id, source: e.source, target: e.target, sourceHandle: 'out', targetHandle: e.targetHandle ?? 'in', label: rows != null ? `${fmt(rows)} rows` : undefined, markerEnd: { type: MarkerType.ArrowClosed }, style: { strokeWidth: 1.6 } };
+        const src = pipeline.nodes.find((n) => n.id === e.source);
+        const color = src ? `var(--cat-${NODE_DEFS[src.kind].group.toLowerCase()})` : 'var(--text-muted)';
+        return {
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          sourceHandle: 'out',
+          targetHandle: e.targetHandle ?? 'in',
+          type: 'smoothstep',
+          animated: running,
+          label: rows != null ? `${fmt(rows)} rows` : undefined,
+          labelBgPadding: [7, 3] as [number, number],
+          labelBgBorderRadius: 99,
+          markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 },
+          style: { stroke: color },
+        };
       }),
-    [pipeline.edges, states],
+    [pipeline.edges, pipeline.nodes, states, running],
   );
 
   const onNodesChange = useCallback(
@@ -145,7 +175,7 @@ function Inner({ pipeline, states, issues, selected, fitKey, onSelect, onChange,
     if (!kind) return;
     e.preventDefault();
     const pos = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY });
-    onAddAt(kind, { x: pos.x - 105, y: pos.y - 30 });
+    onAddAt(kind, { x: pos.x - 112, y: pos.y - 40 });
   };
 
   useEffect(() => {
@@ -169,15 +199,20 @@ function Inner({ pipeline, states, issues, selected, fitKey, onSelect, onChange,
         maxZoom={1.6}
         proOptions={{ hideAttribution: true }}
       >
-        <Background gap={20} size={1} />
+        <Background gap={22} size={1.4} color="var(--canvas-dot)" />
         <Controls position="bottom-left" showInteractive={false} />
-        <MiniMap pannable zoomable position="bottom-right" style={{ width: 150, height: 96 }} nodeColor={(n) => getComputedStyle(document.documentElement).getPropertyValue(`--g-${NODE_DEFS[(n.data as StepData).n.kind].group.toLowerCase()}`).trim()} />
+        <MiniMap pannable zoomable position="bottom-right" style={{ width: 150, height: 96 }} maskColor="color-mix(in srgb, var(--bg) 70%, transparent)" nodeBorderRadius={6} nodeColor={(n) => getComputedStyle(document.documentElement).getPropertyValue(`--cat-${NODE_DEFS[(n.data as StepData).n.kind].group.toLowerCase()}`).trim()} />
       </ReactFlow>
       {pipeline.nodes.length === 0 && (
         <div className="empty-canvas">
           <div>
-            <h3>Drag steps here from the left</h3>
-            <p className="small">Start with a Source, chain transforms, and finish with an Output. Each step runs as you build it.</p>
+            <div className="empty-icons">
+              <span className="icon-tile cat-input"><KindIcon kind="source" /></span>
+              <span className="icon-tile cat-transform"><KindIcon kind="filter" /></span>
+              <span className="icon-tile cat-output"><KindIcon kind="output" /></span>
+            </div>
+            <h3>Drag steps here to start building</h3>
+            <p className="small muted">Start with a Source, chain transforms, and finish with an Output. Every step runs on DuckDB as you build it.</p>
           </div>
         </div>
       )}

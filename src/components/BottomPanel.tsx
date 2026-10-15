@@ -7,6 +7,7 @@ import { toPySpark } from '../pipeline/pyspark';
 import { compileScript } from '../pipeline/sql';
 import type { Pipeline } from '../pipeline/types';
 import CodeView from './CodeView';
+import { Icon } from './icons';
 
 type Tab = 'data' | 'code' | 'quality' | 'problems';
 
@@ -51,29 +52,29 @@ export default function BottomPanel({ pipeline, states, issues, selected, previe
   return (
     <section className="bottom" aria-label="Results">
       <div className="tabs" role="tablist">
-        <button role="tab" className={tab === 'data' ? 'active' : ''} onClick={() => setTab('data')}>Data</button>
-        <button role="tab" className={tab === 'code' ? 'active' : ''} onClick={() => setTab('code')}>Code</button>
+        <button role="tab" className={tab === 'data' ? 'active' : ''} onClick={() => setTab('data')}><Icon.table size={15} /> Data</button>
+        <button role="tab" className={tab === 'code' ? 'active' : ''} onClick={() => setTab('code')}><Icon.code size={15} /> Code</button>
         <button role="tab" className={tab === 'quality' ? 'active' : ''} onClick={() => setTab('quality')}>
-          Quality {failedTotal > 0 && <span className="count bad">{failedTotal.toLocaleString('en-US')}</span>}
+          <Icon.sparkle size={15} /> Quality {failedTotal > 0 && <span className="count bad">{failedTotal.toLocaleString('en-US')}</span>}
         </button>
         <button role="tab" className={tab === 'problems' ? 'active' : ''} onClick={() => setTab('problems')}>
-          Problems {problems.length > 0 && <span className={`count${problems.some((p) => p.severity === 'error') ? ' bad' : ''}`}>{problems.length}</span>}
+          <Icon.alert size={15} /> Problems {problems.length > 0 && <span className={`count${problems.some((p) => p.severity === 'error') ? ' bad' : ''}`}>{problems.length}</span>}
         </button>
         <span className="spacer" />
         {tab === 'data' && node && st && !st.error && (
-          <span className="row" style={{ paddingBottom: 4 }}>
-            <button className="btn quiet xs" onClick={() => onExport(node.id, 'csv')}>Download CSV</button>
-            <button className="btn quiet xs" onClick={() => onExport(node.id, 'parquet')}>Parquet</button>
+          <span className="row">
+            <button className="btn ghost xs" onClick={() => onExport(node.id, 'csv')}><Icon.download size={14} /> CSV</button>
+            <button className="btn ghost xs" onClick={() => onExport(node.id, 'parquet')}>Parquet</button>
           </span>
         )}
         {tab === 'code' && (
-          <span className="row" style={{ paddingBottom: 4 }}>
-            <button className="btn quiet xs" onClick={() => current && navigator.clipboard.writeText(current.content).catch(() => undefined)}>Copy file</button>
-            <button className="btn xs" onClick={() => onDownloadZip(files)}>Download project (.zip)</button>
+          <span className="row">
+            <button className="btn ghost xs" onClick={() => current && navigator.clipboard.writeText(current.content).catch(() => undefined)}><Icon.copy size={14} /> Copy</button>
+            <button className="btn primary xs" onClick={() => onDownloadZip(files)}><Icon.download size={14} /> Download project (.zip)</button>
           </span>
         )}
       </div>
-      <div className="tab-body">
+      <div className="tab-body" key={tab}>
         {tab === 'data' &&
           (!node ? (
             <p className="muted">Select a step to preview its output.</p>
@@ -81,8 +82,8 @@ export default function BottomPanel({ pipeline, states, issues, selected, previe
             <p className="muted">{node.label}: {st.error}</p>
           ) : preview && preview.id === node.id ? (
             <>
-              <p className="small muted" style={{ marginBottom: 6 }}>
-                <b>{node.label}</b>: showing {preview.rows.length} of {(st?.rows ?? 0).toLocaleString('en-US')} rows
+              <p className="preview-head muted">
+                <span className={`pill ok`}><span className="dot" />{node.label}</span> showing {preview.rows.length} of {(st?.rows ?? 0).toLocaleString('en-US')} rows
               </p>
               <table className="grid">
                 <thead>
@@ -108,7 +109,7 @@ export default function BottomPanel({ pipeline, states, issues, selected, previe
               </table>
             </>
           ) : (
-            <p className="muted">Loading preview…</p>
+            <div>{[80, 60, 70, 50].map((w) => <div key={w} className="skeleton" style={{ width: `${w}%` }} />)}</div>
           ))}
         {tab === 'code' && current && (
           <div className="code-layout">
