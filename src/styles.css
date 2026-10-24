@@ -619,3 +619,4 @@ button, a, input, select, textarea { touch-action: manipulation; }
   .query-actions { flex-wrap: wrap; }
   .query-actions > span { margin-left: 0; }
 }
+.boot-screen { display: grid; place-items: center; height: 100dvh; color: #4eff82; font: 13px var(--mono); background: #050b05; }
